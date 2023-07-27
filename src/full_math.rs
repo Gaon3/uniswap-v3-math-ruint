@@ -1,6 +1,6 @@
+use reth_primitives::U256;
 use ruint::uint;
 
-use super::U256;
 use std::ops::{Add, BitAnd, BitOrAssign, BitXor, Div, Mul, MulAssign};
 
 use crate::{
@@ -23,21 +23,21 @@ pub fn mul_div(a: U256, b: U256, mut denominator: U256) -> Result<U256, UniswapV
     let mut prod_1 = mm
         .overflowing_sub(prod_0)
         .0
-        .overflowing_sub(ruint::Uint::<256, 4>::from((mm < prod_0) as u8))
+        .overflowing_sub(U256::from((mm < prod_0) as u8))
         .0;
 
     // Handle non-overflow cases, 256 by 256 division
     if prod_1 == RUINT_ZERO {
         if denominator == RUINT_ZERO {
-            return Err(UniswapV3MathError::DenominatorIsZero)
+            return Err(UniswapV3MathError::DenominatorIsZero);
         }
-        return Ok(prod_0.div(denominator))
+        return Ok(prod_0.div(denominator));
     }
 
     // Make sure the result is less than 2**256.
     // Also prevents denominator == 0
     if denominator <= prod_1 {
-        return Err(UniswapV3MathError::DenominatorIsLteProdOne)
+        return Err(UniswapV3MathError::DenominatorIsLteProdOne);
     }
 
     ///////////////////////////////////////////////
@@ -50,13 +50,18 @@ pub fn mul_div(a: U256, b: U256, mut denominator: U256) -> Result<U256, UniswapV
     let remainder = a.mul_mod(b, denominator);
 
     // Subtract 256 bit number from 512 bit number
-    prod_1 = prod_1.overflowing_sub(ruint::Uint::<256, 4>::from((remainder > prod_0) as u8)).0;
+    prod_1 = prod_1
+        .overflowing_sub(U256::from((remainder > prod_0) as u8))
+        .0;
     prod_0 = prod_0.overflowing_sub(remainder).0;
 
     // Factor powers of two out of denominator
     // Compute largest power of two divisor of denominator.
     // Always >= 1.
-    let mut twos = RUINT_ZERO.overflowing_sub(denominator).0.bitand(denominator);
+    let mut twos = RUINT_ZERO
+        .overflowing_sub(denominator)
+        .0
+        .bitand(denominator);
 
     // Divide denominator by power of two
 
@@ -197,7 +202,10 @@ mod test {
 
         // Accurate with phantom overflow
         let result = mul_div(Q128, U256::from(35).mul(Q128), U256::from(8).mul(Q128));
-        assert_eq!(result.unwrap(), U256::from(4375).mul(Q128).div(uint!(1000_U256)));
+        assert_eq!(
+            result.unwrap(),
+            U256::from(4375).mul(Q128).div(uint!(1000_U256))
+        );
 
         // Accurate with phantom overflow and repeating decimal
         let result = mul_div(Q128, U256::from(1000).mul(Q128), U256::from(3000).mul(Q128));

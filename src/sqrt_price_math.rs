@@ -1,10 +1,11 @@
-use super::U256;
 use crate::{
     error::UniswapV3MathError,
     full_math::{mul_div, mul_div_rounding_up},
+    u256_to_i256,
     unsafe_math::div_rounding_up,
 };
-use ethers_core::types::{I256, U256 as EthersU256};
+use alloy_primitives::I256;
+use reth_primitives::U256;
 use ruint::uint;
 
 pub const MAX_U160: U256 =
@@ -20,9 +21,9 @@ pub fn get_next_sqrt_price_from_input(
     zero_for_one: bool,
 ) -> Result<U256, UniswapV3MathError> {
     if sqrt_price == U256::ZERO {
-        return Err(UniswapV3MathError::SqrtPriceIsZero)
+        return Err(UniswapV3MathError::SqrtPriceIsZero);
     } else if liquidity == 0 {
-        return Err(UniswapV3MathError::LiquidityIsZero)
+        return Err(UniswapV3MathError::LiquidityIsZero);
     }
 
     if zero_for_one {
@@ -40,9 +41,9 @@ pub fn get_next_sqrt_price_from_output(
     zero_for_one: bool,
 ) -> Result<U256, UniswapV3MathError> {
     if sqrt_price == U256::ZERO {
-        return Err(UniswapV3MathError::SqrtPriceIsZero)
+        return Err(UniswapV3MathError::SqrtPriceIsZero);
     } else if liquidity == 0 {
-        return Err(UniswapV3MathError::LiquidityIsZero)
+        return Err(UniswapV3MathError::LiquidityIsZero);
     }
 
     if zero_for_one {
@@ -60,7 +61,7 @@ pub fn get_next_sqrt_price_from_amount_0_rounding_up(
     add: bool,
 ) -> Result<U256, UniswapV3MathError> {
     if amount == U256::ZERO {
-        return Ok(sqrt_price_x_96)
+        return Ok(sqrt_price_x_96);
     }
 
     let numerator_1 = U256::from(liquidity) << 96;
@@ -72,7 +73,7 @@ pub fn get_next_sqrt_price_from_amount_0_rounding_up(
             let denominator = numerator_1.wrapping_add(product);
 
             if denominator >= numerator_1 {
-                return mul_div_rounding_up(numerator_1, sqrt_price_x_96, denominator)
+                return mul_div_rounding_up(numerator_1, sqrt_price_x_96, denominator);
             }
         }
 
@@ -122,7 +123,7 @@ pub fn get_next_sqrt_price_from_amount_1_rounding_down(
 
         //require(sqrtPX96 > quotient);
         if sqrt_price_x_96 <= quotient {
-            return Err(UniswapV3MathError::SqrtPriceIsLteQuotient)
+            return Err(UniswapV3MathError::SqrtPriceIsLteQuotient);
         }
 
         Ok(sqrt_price_x_96.overflowing_sub(quotient).0)
@@ -144,7 +145,7 @@ pub fn _get_amount_0_delta(
     let numerator_2 = sqrt_ratio_b_x_96 - sqrt_ratio_a_x_96;
 
     if sqrt_ratio_a_x_96 == U256::ZERO {
-        return Err(UniswapV3MathError::SqrtPriceIsZero)
+        return Err(UniswapV3MathError::SqrtPriceIsZero);
     }
 
     if round_up {
@@ -187,15 +188,19 @@ pub fn get_amount_0_delta(
     liquidity: i128,
 ) -> Result<I256, UniswapV3MathError> {
     if liquidity < 0 {
-        Ok(-I256::from_raw(EthersU256(
-            _get_amount_0_delta(sqrt_ratio_a_x_96, sqrt_ratio_b_x_96, -liquidity as u128, false)?
-                .into_limbs(),
-        )))
+        Ok(-u256_to_i256(_get_amount_0_delta(
+            sqrt_ratio_a_x_96,
+            sqrt_ratio_b_x_96,
+            -liquidity as u128,
+            false,
+        )?))
     } else {
-        Ok(I256::from_raw(EthersU256(
-            _get_amount_0_delta(sqrt_ratio_a_x_96, sqrt_ratio_b_x_96, liquidity as u128, true)?
-                .into_limbs(),
-        )))
+        Ok(u256_to_i256(_get_amount_0_delta(
+            sqrt_ratio_a_x_96,
+            sqrt_ratio_b_x_96,
+            liquidity as u128,
+            true,
+        )?))
     }
 }
 
@@ -205,15 +210,19 @@ pub fn get_amount_1_delta(
     liquidity: i128,
 ) -> Result<I256, UniswapV3MathError> {
     if liquidity < 0 {
-        Ok(-I256::from_raw(EthersU256(
-            _get_amount_1_delta(sqrt_ratio_a_x_96, sqrt_ratio_b_x_96, -liquidity as u128, false)?
-                .into_limbs(),
-        )))
+        Ok(-u256_to_i256(_get_amount_1_delta(
+            sqrt_ratio_a_x_96,
+            sqrt_ratio_b_x_96,
+            -liquidity as u128,
+            false,
+        )?))
     } else {
-        Ok(I256::from_raw(EthersU256(
-            _get_amount_1_delta(sqrt_ratio_a_x_96, sqrt_ratio_b_x_96, liquidity as u128, true)?
-                .into_limbs(),
-        )))
+        Ok(u256_to_i256(_get_amount_1_delta(
+            sqrt_ratio_a_x_96,
+            sqrt_ratio_b_x_96,
+            liquidity as u128,
+            true,
+        )?))
     }
 }
 
@@ -245,7 +254,10 @@ mod test {
 
         //fails if input amount overflows the price
         let result = get_next_sqrt_price_from_input(MAX_U160, 1024, U256::from(1024), false);
-        assert_eq!(result.unwrap_err().to_string(), "Overflow when casting to U160");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Overflow when casting to U160"
+        );
 
         //any input amount cannot underflow the price
         let result = get_next_sqrt_price_from_input(
@@ -371,7 +383,10 @@ mod test {
             U256::from(262145),
             true,
         );
-        assert_eq!(result.unwrap_err().to_string(), "Sqrt price is less than or equal to quotient");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Sqrt price is less than or equal to quotient"
+        );
 
         //fails if output amount is exactly the virtual reserves of token1
         let result = get_next_sqrt_price_from_output(
@@ -380,7 +395,10 @@ mod test {
             U256::from(262144),
             true,
         );
-        assert_eq!(result.unwrap_err().to_string(), "Sqrt price is less than or equal to quotient");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Sqrt price is less than or equal to quotient"
+        );
 
         //succeeds if output amount is just less than the virtual
         let result = get_next_sqrt_price_from_output(
@@ -446,7 +464,10 @@ mod test {
             U256::MAX,
             true,
         );
-        assert_eq!(result.unwrap_err().to_string(), "Denominator is less than or equal to prod_1");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Denominator is less than or equal to prod_1"
+        );
 
         //reverts if amountOut is impossible in one for zero direction
         let result = get_next_sqrt_price_from_output(
@@ -576,7 +597,10 @@ mod test {
         let sqrt_q =
             get_next_sqrt_price_from_input(sqrt_price, liquidity, amount_in, zero_for_one).unwrap();
 
-        assert_eq!(sqrt_q, uint!(1025574284609383582644711336373707553698163132913_U256));
+        assert_eq!(
+            sqrt_q,
+            uint!(1025574284609383582644711336373707553698163132913_U256)
+        );
 
         let amount_0_delta = _get_amount_0_delta(sqrt_q, sqrt_price, liquidity, true).unwrap();
 

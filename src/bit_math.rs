@@ -1,5 +1,5 @@
-use super::U256;
 use crate::error::UniswapV3MathError;
+use reth_primitives::U256;
 use ruint::uint;
 use std::ops::ShrAssign;
 
@@ -7,7 +7,7 @@ pub fn most_significant_bit(mut x: U256) -> Result<u8, UniswapV3MathError> {
     let mut r = 0;
 
     if x == U256::ZERO {
-        return Err(UniswapV3MathError::ZeroValue)
+        return Err(UniswapV3MathError::ZeroValue);
     }
 
     if x >= uint!(0x100000000000000000000000000000000_U256) {
@@ -53,7 +53,7 @@ pub fn most_significant_bit(mut x: U256) -> Result<u8, UniswapV3MathError> {
 
 pub fn least_significant_bit(mut x: U256) -> Result<u8, UniswapV3MathError> {
     if x == U256::ZERO {
-        return Err(UniswapV3MathError::ZeroValue)
+        return Err(UniswapV3MathError::ZeroValue);
     }
 
     let mut r = 255;
